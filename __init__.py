@@ -7,6 +7,7 @@ from pbf.setup import logger, pluginsManager
 from pbf.utils.Register import Command, Message
 from pbf.controller.Data import Event
 from pbf.controller.Client import Msg
+from pbf import config
 
 
 try:
@@ -32,11 +33,9 @@ meta_data = MetaData(
 
 
 _ws_uri = "wss://socket.xzynb.top/ws"
-_ws_client_id = "123"
-_ws_client_secret = "123"
-_qn = [
-    983519118
-]
+_ws_client_id = config.plugins_config["mcserver"].get("client_id", "123")
+_ws_client_secret = config.plugins_config["mcserver"].get("client_secret", "123")
+_qn = config.plugins_config["mcserver"].get("qn", [])
 banwords = pluginsManager.require("banwords")
 
 def send(wsapp, type: str, data=None, flag: str = ""):
@@ -74,7 +73,9 @@ ws_thread = threading.Thread(target=ws_app.run_forever)
 
 def _enter():
     # 以非阻塞方式运行ws_app
-    ws_thread.start()
+    if config.plugins_config["mcserver"].get("status"):
+        ws_thread.start()
+        config.plugins_config["mcserver"]['status'] = False
 
 def parseMessage(message):
     regexList = [
@@ -105,10 +106,6 @@ def parseMessage(message):
         message = re.sub(i[0], i[1], message)
 
     return message
-
-@Command(name="/", description="执行字零号", usage="/<command>")
-def execCommand(event: Event):
-    send(ws_app, "command", {"cmd": event.raw_message[1:]})
 
 
 @Message(name="MCServer Message Sync")  # 注册消息处理器，会处理所有消息
