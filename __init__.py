@@ -57,7 +57,8 @@ def on_open(wsapp):
 def on_message(wsapp, msg):
     msg = json.loads(msg)
     if msg.get("type") == "ping":
-        return
+        # return
+        pass
     logger.info(f"WS Recv: {msg}")
     if msg.get("type") == "server_message":
         if banwords.check(msg.get("data").get("msg")).get("result"):
@@ -73,9 +74,12 @@ ws_thread = threading.Thread(target=ws_app.run_forever)
 
 def _enter():
     # 以非阻塞方式运行ws_app
-    if config.plugins_config["mcserver"].get("status"):
-        ws_thread.start()
-        config.plugins_config["mcserver"]['status'] = False
+    ws_thread.start()
+
+def _exit():
+    # 向ws_thread发送消息结束ws_app
+    logger.debug("Exiting MCServer Plugin")
+    ws_app.close()
 
 def parseMessage(message):
     regexList = [
