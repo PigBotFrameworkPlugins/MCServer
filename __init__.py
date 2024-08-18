@@ -4,7 +4,7 @@ import re
 
 from pbf.utils import MetaData, Utils
 from pbf.setup import logger, pluginsManager
-from pbf.utils.Register import Command, Message
+from pbf.utils.Register import Command, Message, adminPermission
 from pbf.controller.Data import Event
 from pbf.controller.Client import Msg
 from pbf import config
@@ -19,7 +19,7 @@ except ImportError:
 
 # 插件元数据
 meta_data = MetaData(
-    name="mcserver",
+    name="MC服务器",
     version="0.1.0",
     versionCode=10,
     description="MCServer Tools",
@@ -57,8 +57,7 @@ def on_open(wsapp):
 def on_message(wsapp, msg):
     msg = json.loads(msg)
     if msg.get("type") == "ping":
-        # return
-        pass
+        return
     logger.info(f"WS Recv: {msg}")
     if msg.get("type") == "server_message":
         if banwords.check(msg.get("data").get("msg")).get("result"):
@@ -80,6 +79,7 @@ def _exit():
     # 向ws_thread发送消息结束ws_app
     logger.debug("Exiting MCServer Plugin")
     ws_app.close()
+    ws_thread.join(timeout=3)
 
 def parseMessage(message):
     regexList = [
@@ -99,17 +99,25 @@ def parseMessage(message):
                     flag = False
                     continue
                 num = int(l[0:1])
-                print(i[num + 1])
                 pattern = re.compile(i[num + 1], re.I)
                 m = pattern.match(message)
                 if m is None:
-                    print(m, message, i[num + 1])
                     continue
                 i[1] = i[1].replace(f"${num}", re.sub("(.*?)=", "", m.group(0)))
 
         message = re.sub(i[0], i[1], message)
 
     return message
+
+
+@Command(
+    name="/",
+    description="MCServer Command",
+    usage="/<Command Content>",
+    permission=adminPermission
+)
+def mcCommand(event: Event):
+    send(ws_app, "command", {"cmd": event.raw_message[1:]})
 
 
 @Message(name="MCServer Message Sync")  # 注册消息处理器，会处理所有消息
