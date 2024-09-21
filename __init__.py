@@ -49,7 +49,6 @@ _ws_client_id = myConfig.get("client_id")
 _ws_client_secret = myConfig.get("client_secret")
 _qn = myConfig.get("qn")
 _enable_chatimage = myConfig.get("enable_chatimage")
-banwords = pluginsManager.require("banwords")
 
 def send(wsapp, type: str, data=None, flag: str = ""):
     if data is None:
@@ -80,9 +79,10 @@ def on_message(wsapp, msg):
         return
     logger.info(f"WS Recv: {msg}")
     if msg.get("type") == "server_message":
-        if banwords.check(msg.get("data").get("msg")).get("result"):
-            logger.info(f"Message Containers Banword: {msg.get('data').get('msg')}")
-            return
+        if pluginsManager.hasApi("banwords"):
+            if pluginsManager.require('banwords').check(msg.get("data").get("msg")).get("result"):
+                logger.info(f"Message Containers Banword: {msg.get('data').get('msg')}")
+                return
         Msg(msg.get("data").get("msg")).send_to(group_id=int(msg.get("data").get("qn")))
 
 def reconnect(wsapp):
